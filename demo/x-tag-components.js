@@ -1,6 +1,6 @@
 
 (function(){
-
+  
   var win = window,
     doc = document,
     tags = {},
@@ -13,15 +13,15 @@
       var base,
           token = name,
           options = options || {};
-
+          
       if (!options.prototype) {
         throw new Error('Missing required prototype property for registration of the ' + name + ' element');
       }
-
+      
       if (options.prototype && !('setAttribute' in options.prototype)) {
         throw new TypeError("Unexpected prototype for " + name + " element - custom element prototypes must inherit from the Element interface");
       }
-
+      
       if (options.extends){
         var ancestor = (tags[options.extends] || _createElement.call(doc, options.extends)).constructor;
         if (ancestor != (win.HTMLUnknownElement || win.HTMLElement)) {
@@ -29,9 +29,9 @@
           token = '[is="' + name + '"]';
         }
       }
-
+      
       if (tokens.indexOf(token) == -1) tokens.push(token);
-
+      
       var tag = tags[name] = {
         base: base,
         'constructor': function(){
@@ -40,16 +40,16 @@
         _prototype: doc.__proto__ ? null : unwrapPrototype(options.prototype),
         'prototype': options.prototype
       };
-
+      
       tag.constructor.prototype = tag.prototype;
-
+      
       if (domready) query(doc, name).forEach(function(element){
         upgrade(element, true);
       });
-
+      
       return tag.constructor;
     };
-
+  
   function unwrapPrototype(proto){
     var definition = {},
         names = Object.getOwnPropertyNames(proto),
@@ -59,12 +59,12 @@
     }
     return definition;
   }
-
+  
   var typeObj = {};
   function typeOf(obj) {
     return typeObj.toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
   }
-
+  
   function clone(item, type){
     var fn = clone[type || typeOf(item)];
     return fn ? fn(item) : item;
@@ -79,22 +79,22 @@
       while (i--) array[i] = clone(src[i]);
       return array;
     };
-
+  
   var unsliceable = ['number', 'boolean', 'string', 'function'];
   function toArray(obj){
-    return unsliceable.indexOf(typeOf(obj)) == -1 ?
+    return unsliceable.indexOf(typeOf(obj)) == -1 ? 
     Array.prototype.slice.call(obj, 0) :
     [obj];
   }
-
+  
   function query(element, selector){
     return element && selector && selector.length ? toArray(element.querySelectorAll(selector)) : [];
   }
-
+  
   function getTag(element){
     return element.getAttribute ? tags[element.getAttribute('is') || element.nodeName.toLowerCase()] : false;
   }
-
+  
   function manipulate(element, fn){
     var next = element.nextSibling,
       parent = element.parentNode,
@@ -107,7 +107,7 @@
       parent.appendChild(returned);
     }
   }
-
+  
   function upgrade(element){
     if (!element._elementupgraded) {
       var tag = getTag(element);
@@ -120,7 +120,7 @@
       }
     }
   }
-
+  
   function inserted(element, event){
     var tag = getTag(element);
     if (tag){
@@ -141,7 +141,7 @@
       if (el.insertedCallback) el.insertedCallback.call(el);
     });
   }
-
+  
   function removed(element){
     if (element._elementupgraded) {
       if (element.removedCallback) element.removedCallback.call(element);
@@ -150,7 +150,7 @@
       });
     }
   }
-
+  
   function addObserver(element, type, fn){
     if (!element._records) {
       element._records = { inserted: [], removed: [] };
@@ -176,7 +176,7 @@
     }
     if (element._records[type].indexOf(fn) == -1) element._records[type].push(fn);
   }
-
+  
   function removeObserver(element, type, fn){
     var obj = element._records;
     if (obj && fn){
@@ -186,7 +186,7 @@
       obj[type] = [];
     }
   }
-
+    
   function parseMutations(element, mutations) {
     var diff = { added: [], removed: [] };
     mutations.forEach(function(record){
@@ -203,7 +203,7 @@
       }
     });
   }
-
+    
   function fireEvent(element, type, data, options){
     options = options || {};
     var event = doc.createEvent('Event');
@@ -215,7 +215,7 @@
   var polyfill = !doc.register;
   if (polyfill) {
     doc.register = register;
-
+    
     doc.createElement = function createElement(tag){
       var base = tags[tag] ? tags[tag].base : null;
           element = _createElement.call(doc, base || tag);
@@ -223,44 +223,44 @@
       upgrade(element);
       return element;
     };
-
+    
     function changeAttribute(attr, value, method){
       var tag = getTag(this),
           last = this.getAttribute(attr);
       method.call(this, attr, value);
       if (tag && last != this.getAttribute(attr)) {
         if (this.attributeChangedCallback) this.attributeChangedCallback.call(this, attr, last);
-      }
+      } 
     };
-
-    var setAttr = Element.prototype.setAttribute;
+    
+    var setAttr = Element.prototype.setAttribute;   
     Element.prototype.setAttribute = function(attr, value){
       changeAttribute.call(this, attr, value, setAttr);
     };
-
-    removeAttr = Element.prototype.removeAttribute;
+    
+    removeAttr = Element.prototype.removeAttribute;   
     Element.prototype.removeAttribute = function(attr, value){
       changeAttribute.call(this, attr, value, removeAttr);
     };
-
+    
     var initialize = function (){
       addObserver(doc.documentElement, 'inserted', inserted);
       addObserver(doc.documentElement, 'removed', removed);
-
+      
       if (tokens.length) query(doc, tokens).forEach(function(element){
         upgrade(element);
       });
-
+      
       domready = true;
       fireEvent(doc.body, 'WebComponentsReady');
       fireEvent(doc.body, 'DOMComponentsLoaded');
       fireEvent(doc.body, '__DOMComponentsLoaded__');
     };
-
+    
     if (doc.readyState == 'complete') initialize();
-    else doc.addEventListener(doc.readyState == 'interactive' ? 'readystatechange' : 'DOMContentLoaded', initialize);
+    else doc.addEventListener(doc.readyState == 'interactive' ? 'readystatechange' : 'DOMContentLoaded', initialize); 
   }
-
+  
   doc.register.__polyfill__ = {
     query: query,
     clone: clone,
@@ -286,6 +286,7 @@
 
   var win = window,
     doc = document,
+    noop = function(){},
     regexPseudoSplit = /(\w+(?:\([^\)]+\))?)/g,
     regexPseudoReplace = /(\w*)(?:\(([^\)]*)\))?/,
     regexDigits = /(\d+)/g,
@@ -577,12 +578,12 @@
       var duration = prefix.js + 'TransitionDuration';
       element.style[duration] = '0.001s';
       element.style.transitionDuration = '0.001s';
-      if (fn) fn.call(bind);
-      var callback;
-      callback = xtag.addEvent(element, 'transitionend', function(){
-        element.style[duration] = '';
-        element.style.transitionDuration = '';
-        xtag.removeEvent(element, 'transitionend', callback);
+      xtag.requestFrame(function(){
+        if (fn) fn.call(bind);
+        xtag.requestFrame(function(){
+          element.style[duration] = '';
+          element.style.transitionDuration = '';
+        });
       });
     },
 
@@ -714,12 +715,10 @@
       });
     },
 
-
   /*** Events ***/
 
     parseEvent: function(type, fn) {
       var pseudos = type.split(':'),
-        noop = function(){},
         key = pseudos.shift(),
         event = xtag.merge({
           base: key,
